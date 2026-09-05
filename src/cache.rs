@@ -11,11 +11,12 @@ use std::{
 };
 
 const PREFIX_NEGATIVE: &str = "miss:";
+const LYRICS_CACHE_VERSION: &str = "v2";
 
 const SENTINEL: &[u8] = &[1u8];
 
 fn cache_key(track_id: &str, kind: LyricsKind) -> String {
-    format!("{}:{track_id}", kind.slug())
+    format!("{LYRICS_CACHE_VERSION}:{}:{track_id}", kind.slug())
 }
 
 fn negative_cache_key(track_id: &str, provider: &str) -> String {
@@ -168,13 +169,13 @@ mod tests {
 
     #[test]
     fn an_entry_is_keyed_by_type_and_track() {
-        check_key(LyricsKind::Plain, "plain:abc123");
-        check_key(LyricsKind::Lrc, "lrc:abc123");
-        check_key(LyricsKind::Elrc, "elrc:abc123");
-        check_key(LyricsKind::Ttml, "ttml:abc123");
-        check_key(LyricsKind::Srt, "srt:abc123");
-        check_key(LyricsKind::Lyricsfile, "lyricsfile:abc123");
-        check_key(LyricsKind::Instrumental, "instrumental:abc123");
+        check_key(LyricsKind::Plain, "v2:plain:abc123");
+        check_key(LyricsKind::Lrc, "v2:lrc:abc123");
+        check_key(LyricsKind::Elrc, "v2:elrc:abc123");
+        check_key(LyricsKind::Ttml, "v2:ttml:abc123");
+        check_key(LyricsKind::Srt, "v2:srt:abc123");
+        check_key(LyricsKind::Lyricsfile, "v2:lyricsfile:abc123");
+        check_key(LyricsKind::Instrumental, "v2:instrumental:abc123");
     }
 
     #[test]

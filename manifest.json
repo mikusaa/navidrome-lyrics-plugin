@@ -1,24 +1,24 @@
 {
   "name": "Lyrics",
   "author": "Jorge Pardo",
-  "version": "7.2.0",
-  "description": "Fetch lyrics from multiple sources",
-  "website": "https://github.com/J0R6IT0/navidrome-lyrics-plugin",
+  "version": "7.2.1",
+  "description": "从多个来源获取歌词",
+  "website": "https://github.com/mikusaa/navidrome-lyrics-plugin",
 
   "permissions": {
     "http": {
-      "reason": "To fetch lyrics from the internet. All hosts required for custom URLs.",
+      "reason": "从互联网获取歌词；自定义地址需要访问对应主机。",
       "requiredHosts": ["*"]
     },
     "library": {
-      "reason": "To save lyrics as .lrc files.",
+      "reason": "将歌词保存为侧车文件。",
       "filesystem": true
     },
     "cache": {
-      "reason": "To cache transient provider state (Apple Music dev token, storefront, provider rotation)."
+      "reason": "缓存临时状态（Apple Music 开发者令牌、商店区域和歌词源轮换位置）。"
     },
     "kvstore": {
-      "reason": "To cache lyrics persistently across restarts.",
+      "reason": "持久缓存歌词，使其在重启后仍然可用。",
       "maxSize": "1000MB"
     }
   },
@@ -29,63 +29,67 @@
       "properties": {
         "lyricsFormats": {
           "type": "string",
-          "title": "Lyrics formats",
+          "title": "歌词格式及优先级",
           "default": "ttml,elrc,lyricsfile,lrc,srt,plain",
-          "description": "Comma-separated list of formats to fetch, ordered by priority. Remove a format to disable it (not recommended unless you have a specific use case). Valid values: lrc, elrc, ttml, srt, lyricsfile, plain."
+          "description": "按优先级排列并以英文逗号分隔。删除某种格式即可禁用（除非有明确需求，否则不建议）。可用值：lrc、elrc、ttml、srt、lyricsfile、plain。"
         },
 
         "instrumentalText": {
           "type": "string",
-          "title": "Instrumental lyrics text",
+          "title": "纯音乐提示文字",
           "default": "Instrumental",
-          "description": "The text to use for instrumental lyrics. Leave blank to not return instrumental lyrics to navidrome and skip writing them to files."
+          "description": "检测到纯音乐时返回的文字。留空则不向 Navidrome 返回纯音乐歌词，也不会写入文件。"
         },
 
         "stripSectionLabels": {
           "type": "boolean",
-          "title": "Strip section labels ([Verse], [Chorus], etc.)",
+          "title": "移除段落标签（如 [Verse]、[Chorus]）",
           "default": false
         },
 
         "durationToleranceSeconds": {
           "type": "integer",
-          "title": "Duration tolerance (seconds)",
+          "title": "时长容差（秒）",
           "minimum": 1,
           "maximum": 3600,
           "default": 3,
-          "description": "Maximum allowed difference between the track's duration and a provider result's duration. Increasing this may return less accurate results."
+          "description": "歌曲时长与歌词源结果之间允许的最大差值。增大此值可能降低匹配准确度。"
         },
 
         "providersList": {
           "type": "array",
-          "title": "Lyrics providers",
-          "default": [{ "provider": "lrclib" }, { "provider": "lyrics.ovh" }],
+          "title": "歌词源",
+          "default": [
+            { "provider": "netease" },
+            { "provider": "lrclib" },
+            { "provider": "lyrics.ovh" }
+          ],
           "items": {
             "type": "object",
             "properties": {
               "provider": {
                 "type": "string",
-                "title": "Provider",
+                "title": "歌词源",
                 "default": "lrclib",
                 "oneOf": [
                   { "const": "lrclib", "title": "LRCLIB" },
                   { "const": "lyrics.ovh", "title": "lyrics.ovh" },
                   { "const": "lrcmux", "title": "lrcmux" },
-                  { "const": "kugou", "title": "KuGou" },
-                  { "const": "netease", "title": "NetEase" },
-                  { "const": "qqmusic", "title": "QQ Music" },
+                  { "const": "kugou", "title": "酷狗音乐" },
+                  { "const": "netease", "title": "网易云音乐（有翻译时自动双语）" },
+                  { "const": "qqmusic", "title": "QQ 音乐" },
                   { "const": "applemusic", "title": "Apple Music" },
                   { "const": "stixoi", "title": "stixoi.info" }
                 ]
               },
               "baseUrl": {
                 "type": "string",
-                "title": "Custom base URL",
-                "description": "Optional. Leave empty to use the provider's default."
+                "title": "自定义服务地址",
+                "description": "可选。留空则使用歌词源的默认地址。"
               },
               "sources": {
                 "type": "array",
-                "title": "Sources",
+                "title": "上游来源",
                 "uniqueItems": true,
                 "default": [
                   "genius",
@@ -98,86 +102,86 @@
                   "type": "string",
                   "oneOf": [
                     { "const": "genius", "title": "Genius" },
-                    { "const": "kugou", "title": "KuGou" },
+                    { "const": "kugou", "title": "酷狗音乐" },
                     { "const": "musixmatch", "title": "Musixmatch" },
-                    { "const": "netease", "title": "NetEase" },
+                    { "const": "netease", "title": "网易云音乐" },
                     { "const": "ytmusic", "title": "YouTube Music" }
                   ]
                 }
               },
               "mediaUserToken": {
                 "type": "string",
-                "title": "Media user token",
-                "description": "The media-user-token of an Apple Music subscriber, required to access lyrics."
+                "title": "媒体用户令牌",
+                "description": "Apple Music 订阅用户的 media-user-token，访问歌词时必填。"
               },
               "storefront": {
                 "type": "string",
-                "title": "Storefront",
-                "description": "Optional. Storefront code (e.g. us, gb, es). Auto-detected from the account when left empty. Only include it if the auto-detection is not working correctly."
+                "title": "商店区域",
+                "description": "可选。Apple Music 商店区域代码（如 us、gb、es）。留空时从账户自动检测，仅在自动检测不正确时填写。"
               },
               "includeTranslations": {
                 "type": "boolean",
-                "title": "Include translations (availability varies by song)",
+                "title": "包含翻译（是否可用取决于歌曲）",
                 "default": false
               },
               "translationLanguage": {
                 "type": "string",
-                "title": "Translation language",
+                "title": "翻译语言",
                 "default": "en-US",
                 "oneOf": [
-                  { "const": "ar", "title": "Arabic" },
-                  { "const": "ca", "title": "Catalan" },
-                  { "const": "zh-Hans-CN", "title": "Chinese (Simplified)" },
+                  { "const": "ar", "title": "阿拉伯语" },
+                  { "const": "ca", "title": "加泰罗尼亚语" },
+                  { "const": "zh-Hans-CN", "title": "简体中文" },
                   {
                     "const": "zh-Hant-HK",
-                    "title": "Chinese (Traditional, Hong Kong)"
+                    "title": "繁体中文（香港）"
                   },
                   {
                     "const": "zh-Hant-TW",
-                    "title": "Chinese (Traditional, Taiwan)"
+                    "title": "繁体中文（台湾）"
                   },
-                  { "const": "hr", "title": "Croatian" },
-                  { "const": "cs", "title": "Czech" },
-                  { "const": "da", "title": "Danish" },
-                  { "const": "nl", "title": "Dutch" },
-                  { "const": "en-AU", "title": "English (Australia)" },
-                  { "const": "en-CA", "title": "English (Canada)" },
-                  { "const": "en-GB", "title": "English (UK)" },
-                  { "const": "en-US", "title": "English (US)" },
-                  { "const": "fi", "title": "Finnish" },
-                  { "const": "fr-FR", "title": "French" },
-                  { "const": "fr-CA", "title": "French (Canada)" },
-                  { "const": "de-DE", "title": "German" },
-                  { "const": "de-CH", "title": "German (Switzerland)" },
-                  { "const": "el", "title": "Greek" },
-                  { "const": "he", "title": "Hebrew" },
-                  { "const": "hi", "title": "Hindi" },
-                  { "const": "hu", "title": "Hungarian" },
-                  { "const": "id", "title": "Indonesian" },
-                  { "const": "it", "title": "Italian" },
-                  { "const": "ja", "title": "Japanese" },
-                  { "const": "ko", "title": "Korean" },
-                  { "const": "ms", "title": "Malay" },
-                  { "const": "nb", "title": "Norwegian Bokmål" },
-                  { "const": "pl", "title": "Polish" },
-                  { "const": "pt-BR", "title": "Portuguese (Brazil)" },
-                  { "const": "pt-PT", "title": "Portuguese (Portugal)" },
-                  { "const": "ro", "title": "Romanian" },
-                  { "const": "ru", "title": "Russian" },
-                  { "const": "sk", "title": "Slovak" },
-                  { "const": "es-MX", "title": "Spanish (Mexico)" },
-                  { "const": "es-ES", "title": "Spanish (Spain)" },
-                  { "const": "sv", "title": "Swedish" },
-                  { "const": "th", "title": "Thai" },
-                  { "const": "tr", "title": "Turkish" },
-                  { "const": "uk", "title": "Ukrainian" },
-                  { "const": "vi", "title": "Vietnamese" }
+                  { "const": "hr", "title": "克罗地亚语" },
+                  { "const": "cs", "title": "捷克语" },
+                  { "const": "da", "title": "丹麦语" },
+                  { "const": "nl", "title": "荷兰语" },
+                  { "const": "en-AU", "title": "英语（澳大利亚）" },
+                  { "const": "en-CA", "title": "英语（加拿大）" },
+                  { "const": "en-GB", "title": "英语（英国）" },
+                  { "const": "en-US", "title": "英语（美国）" },
+                  { "const": "fi", "title": "芬兰语" },
+                  { "const": "fr-FR", "title": "法语" },
+                  { "const": "fr-CA", "title": "法语（加拿大）" },
+                  { "const": "de-DE", "title": "德语" },
+                  { "const": "de-CH", "title": "德语（瑞士）" },
+                  { "const": "el", "title": "希腊语" },
+                  { "const": "he", "title": "希伯来语" },
+                  { "const": "hi", "title": "印地语" },
+                  { "const": "hu", "title": "匈牙利语" },
+                  { "const": "id", "title": "印度尼西亚语" },
+                  { "const": "it", "title": "意大利语" },
+                  { "const": "ja", "title": "日语" },
+                  { "const": "ko", "title": "韩语" },
+                  { "const": "ms", "title": "马来语" },
+                  { "const": "nb", "title": "挪威博克马尔语" },
+                  { "const": "pl", "title": "波兰语" },
+                  { "const": "pt-BR", "title": "葡萄牙语（巴西）" },
+                  { "const": "pt-PT", "title": "葡萄牙语（葡萄牙）" },
+                  { "const": "ro", "title": "罗马尼亚语" },
+                  { "const": "ru", "title": "俄语" },
+                  { "const": "sk", "title": "斯洛伐克语" },
+                  { "const": "es-MX", "title": "西班牙语（墨西哥）" },
+                  { "const": "es-ES", "title": "西班牙语（西班牙）" },
+                  { "const": "sv", "title": "瑞典语" },
+                  { "const": "th", "title": "泰语" },
+                  { "const": "tr", "title": "土耳其语" },
+                  { "const": "uk", "title": "乌克兰语" },
+                  { "const": "vi", "title": "越南语" }
                 ],
-                "description": "Language the translation should be in. Only used when translations are included."
+                "description": "译文使用的语言，仅在包含翻译时生效。"
               },
               "includeRomanization": {
                 "type": "boolean",
-                "title": "Include romanization (availability varies by song)",
+                "title": "包含罗马音（是否可用取决于歌曲）",
                 "default": false
               }
             },
@@ -196,165 +200,165 @@
 
         "providerMode": {
           "type": "string",
-          "title": "Provider mode",
+          "title": "歌词源模式",
           "default": "priority",
           "oneOf": [
-            { "const": "priority", "title": "Priority" },
-            { "const": "rotation", "title": "Rotation" },
-            { "const": "type", "title": "Type priority" },
-            { "const": "sync", "title": "Best sync level" }
+            { "const": "priority", "title": "按顺序优先" },
+            { "const": "rotation", "title": "轮换" },
+            { "const": "type", "title": "格式优先" },
+            { "const": "sync", "title": "最佳同步级别" }
           ]
         },
 
         "preferUncensored": {
           "type": "boolean",
-          "title": "Prefer uncensored lyrics",
+          "title": "优先未删减歌词",
           "default": false
         },
 
         "enableCache": {
           "type": "boolean",
-          "title": "Enable lyrics cache",
+          "title": "启用歌词缓存",
           "default": true
         },
 
         "perTypeCacheTtl": {
           "type": "boolean",
-          "title": "Use a separate cache TTL per lyrics type",
+          "title": "按歌词格式分别设置缓存有效期",
           "default": false
         },
 
         "cacheTtlHours": {
           "type": "integer",
-          "title": "Cache TTL (hours)",
+          "title": "缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 168,
-          "description": "How long cached lyrics remain valid. Default is 7 days."
+          "description": "歌词缓存的有效时长，默认为 7 天。"
         },
 
         "ttmlCacheTtlHours": {
           "type": "integer",
-          "title": "TTML cache TTL (hours)",
+          "title": "TTML 缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 336,
-          "description": "Default is 14 days."
+          "description": "默认为 14 天。"
         },
 
         "lyricsfileCacheTtlHours": {
           "type": "integer",
-          "title": "Lyricsfile cache TTL (hours)",
+          "title": "Lyricsfile 缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 168,
-          "description": "Default is 7 days."
+          "description": "默认为 7 天。"
         },
 
         "elrcCacheTtlHours": {
           "type": "integer",
-          "title": "ELRC cache TTL (hours)",
+          "title": "ELRC 缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 336,
-          "description": "Default is 14 days."
+          "description": "默认为 14 天。"
         },
 
         "lrcCacheTtlHours": {
           "type": "integer",
-          "title": "LRC cache TTL (hours)",
+          "title": "LRC 缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 168,
-          "description": "Default is 7 days."
+          "description": "默认为 7 天。"
         },
 
         "srtCacheTtlHours": {
           "type": "integer",
-          "title": "SRT cache TTL (hours)",
+          "title": "SRT 缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 168,
-          "description": "Default is 7 days."
+          "description": "默认为 7 天。"
         },
 
         "plainCacheTtlHours": {
           "type": "integer",
-          "title": "Plain cache TTL (hours)",
+          "title": "纯文本缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 72,
-          "description": "Default is 3 days."
+          "description": "默认为 3 天。"
         },
 
         "instrumentalCacheTtlHours": {
           "type": "integer",
-          "title": "Instrumental cache TTL (hours)",
+          "title": "纯音乐缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 336,
-          "description": "Default is 14 days."
+          "description": "默认为 14 天。"
         },
 
         "negativeCache": {
           "type": "boolean",
-          "title": "Cache negative results (i.e. no lyrics found) (per-provider)",
+          "title": "缓存未找到歌词的结果（按歌词源）",
           "default": true
         },
 
         "negativeCacheTtlHours": {
           "type": "integer",
-          "title": "Negative cache TTL (hours)",
+          "title": "未找到结果的缓存有效期（小时）",
           "minimum": 1,
           "maximum": 1000000,
           "default": 24,
-          "description": "How long per-provider negative cache entries remain valid. Default is 24 hours."
+          "description": "每个歌词源未找到结果时的缓存有效时长，默认为 24 小时。"
         },
 
         "writeLyrics": {
           "type": "boolean",
-          "title": "Write lyrics to files",
+          "title": "将歌词写入文件",
           "default": false
         },
 
         "plainExtension": {
           "type": "string",
-          "title": "Plain lyrics extension",
+          "title": "纯文本歌词扩展名",
           "default": "txt",
-          "description": "File extension for plain lyrics files. LRC, ELRC, TTML, SRT and YAML files always use their standard extension."
+          "description": "纯文本歌词文件的扩展名。LRC、ELRC、TTML、SRT 和 YAML 始终使用各自的标准扩展名。"
         },
 
         "instrumentalExtension": {
           "type": "string",
-          "title": "Instrumental lyrics extension",
+          "title": "纯音乐歌词扩展名",
           "default": "txt",
-          "description": "File extension for instrumental lyrics files."
+          "description": "纯音乐提示文件使用的扩展名。"
         },
 
         "overwriteLyrics": {
           "type": "boolean",
-          "title": "Overwrite existing lyrics files",
+          "title": "覆盖已有歌词文件",
           "default": false
         },
 
         "writeToSpecificFolder": {
           "type": "boolean",
-          "title": "Write lyrics to a custom path instead of next to each song file.",
+          "title": "写入自定义路径，而不是歌曲文件旁边",
           "default": false
         },
 
         "writeToSpecificFolderLibraryId": {
           "type": "integer",
-          "title": "Library ID",
+          "title": "媒体库 ID",
           "minimum": 0,
-          "description": "The library whose root will be used as the base for the output path. Use the numeric ID as shown in Navidrome."
+          "description": "选择一个媒体库，并以其根目录作为输出路径的起点。填写 Navidrome 中显示的数字 ID。"
         },
 
         "writeToSpecificFolderTemplate": {
           "type": "string",
-          "title": "Output path template",
+          "title": "输出路径模板",
           "default": "_lyrics/{type}/{track:album_artist} - {track:album}/{track:disc_number:2} - {track:track_number:2} {track:title}",
-          "description": "Path relative to the selected library root. Supports template variables. See GitHub for the full list."
+          "description": "相对于所选媒体库根目录的路径，支持模板变量。完整变量列表请查看 GitHub。"
         }
       },
       "required": ["providerMode"],
@@ -374,7 +378,7 @@
       "elements": [
         {
           "type": "Group",
-          "label": "Lyrics",
+          "label": "歌词",
           "elements": [
             {
               "type": "Control",
@@ -397,11 +401,11 @@
 
         {
           "type": "Group",
-          "label": "Providers",
+          "label": "歌词源",
           "elements": [
             {
               "type": "Label",
-              "text": "The list of providers to query. The same provider can be included multiple times with different parameters (for example, lrclib with a custom base URL and with the default). The provider mode below controls how the list is used for each lookup."
+              "text": "按列表配置要查询的歌词源。同一歌词源可以使用不同参数添加多次（例如同时添加使用自定义地址和默认地址的 LRCLIB）。下方的歌词源模式决定每次查询如何使用此列表。网易云音乐有翻译时会自动返回双语歌词。"
             },
             {
               "type": "Control",
@@ -409,19 +413,19 @@
             },
             {
               "type": "Label",
-              "text": "• Priority: every lookup tries the providers top to bottom and the first one that returns lyrics wins."
+              "text": "• 按顺序优先：每次从上到下查询，使用第一个返回歌词的来源。"
             },
             {
               "type": "Label",
-              "text": "• Rotation: each lookup starts with the next provider in the list, cycling through them on successive calls. If the chosen provider returns nothing, the rest are tried as fallbacks. Useful to avoid rate limits."
+              "text": "• 轮换：每次从列表中的下一个歌词源开始，依次循环；首选来源无结果时再查询其余来源。适合分散请求并减少限流。"
             },
             {
               "type": "Label",
-              "text": "• Type priority: keeps querying providers until it has the highest-priority format they can offer, then returns the best result. Skips providers that cannot beat what is already fetched. Ties go to the higher provider. More requests per lookup."
+              "text": "• 格式优先：继续查询，直到取得各歌词源能够提供的最高优先级格式；无法优于现有结果的来源会被跳过，同级时使用列表中更靠前的来源。每次查询会产生更多请求。"
             },
             {
               "type": "Label",
-              "text": "• Best sync level: same as type priority, but ranks results by their sync level (word-by-word > line-by-line > plain). More requests per lookup."
+              "text": "• 最佳同步级别：与格式优先类似，但按同步精度排序（逐字 > 逐行 > 纯文本）。每次查询会产生更多请求。"
             },
             {
               "type": "Control",
@@ -464,7 +468,7 @@
                     },
                     {
                       "type": "Label",
-                      "text": "Sources",
+                      "text": "上游来源",
                       "rule": {
                         "effect": "SHOW",
                         "condition": {
@@ -568,7 +572,7 @@
 
         {
           "type": "Group",
-          "label": "Cache",
+          "label": "缓存",
           "elements": [
             {
               "type": "Control",
@@ -758,11 +762,11 @@
 
         {
           "type": "Group",
-          "label": "File Writing",
+          "label": "写入文件",
           "elements": [
             {
               "type": "Label",
-              "text": "NOTE: Your music library must be mounted with write access and the plugin must have permission to write files."
+              "text": "注意：音乐媒体库必须以可写方式挂载，并且插件必须拥有写入文件的权限。"
             },
             {
               "type": "Control",

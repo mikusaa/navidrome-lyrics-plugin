@@ -23,7 +23,7 @@ pub use registry::ProviderRegistry;
 const USER_AGENT: &str = concat!(
     "navidrome-lyrics-plugin/",
     env!("CARGO_PKG_VERSION"),
-    " (https://github.com/J0R6IT0/navidrome-lyrics-plugin)"
+    " (https://github.com/mikusaa/navidrome-lyrics-plugin)"
 );
 
 const BROWSER_USER_AGENT: &str =

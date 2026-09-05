@@ -7,7 +7,7 @@ A Navidrome plugin for fetching lyrics from multiple sources. Formerly Navidrome
 
 ## Features
 
-- Multiple [lyrics providers](https://github.com/J0R6IT0/navidrome-lyrics-plugin#providers).
+- Multiple [lyrics providers](https://github.com/mikusaa/navidrome-lyrics-plugin#providers).
 - Supports plain, line-synced and word-by-word lyrics in TTML, LRC, ELRC, Lyricsfile and other formats.
 - Allows writing lyrics to sidecar files.
 - Different provider modes to query by priority, preferred format or sync level.
@@ -47,7 +47,7 @@ Some of the providers don't host lyrics themselves, they pull them from other we
 | lyrics.ovh  | Genius, AZLyrics, Paroles.net, LyricsMania, Letras.mus.br, Lyrics.com | plain                | Supports custom instances                                            |
 | lrcmux      | Genius, KuGou, Musixmatch, NetEase, YouTube Music                     | plain,lrc,elrc       | Supports custom instances                                            |
 | KuGou       |                                                                       | lrc,elrc             |                                                                      |
-| NetEase     |                                                                       | lrc,elrc             |                                                                      |
+| NetEase     |                                                                       | lrc,elrc             | Includes translations when available                                 |
 | QQ Music    |                                                                       | lrc,elrc             |                                                                      |
 | Apple Music |                                                                       | ttml                 | Supports translations and romanization. Requires active subscription |
 | stixoi.info |                                                                       | plain                | Greek lyrics archive                                                 |

@@ -41,6 +41,8 @@ struct Song {
 struct LyricsResponse {
     lrc: Option<LyricContent>,
     yrc: Option<LyricContent>,
+    tlyric: Option<LyricContent>,
+    ytlrc: Option<LyricContent>,
     #[serde(default)]
     pure_music: bool,
 }
@@ -97,12 +99,17 @@ impl LyricsProvider for NetEase {
         }
 
         let lrc = LyricContent::text(&response.lrc).map(strip_metadata);
+        let tlyric = LyricContent::text(&response.tlyric).map(strip_metadata);
+        let ytlrc = LyricContent::text(&response.ytlrc).map(strip_metadata);
 
         for &kind in &cfg.lyrics_type_priority {
             match kind {
                 LyricsKind::Elrc => {
                     if let Some(raw) = LyricContent::text(&response.yrc) {
-                        let elrc = yrc::to_enhanced_lrc(raw);
+                        let mut elrc = yrc::to_enhanced_lrc(raw);
+                        if let Some(translation) = ytlrc.as_deref().or(tlyric.as_deref()) {
+                            elrc = lrc::merge_translation(&elrc, translation);
+                        }
                         if !elrc.trim().is_empty() {
                             return Ok(Some(Lyrics::Elrc(elrc)));
                         }
@@ -112,7 +119,11 @@ impl LyricsProvider for NetEase {
                     if let Some(text) = &lrc
                         && lrc::is_synced(text)
                     {
-                        return Ok(Some(Lyrics::Lrc(text.clone())));
+                        let mut text = text.clone();
+                        if let Some(translation) = tlyric.as_deref().or(ytlrc.as_deref()) {
+                            text = lrc::merge_translation(&text, translation);
+                        }
+                        return Ok(Some(Lyrics::Lrc(text)));
                     }
                 }
                 LyricsKind::Plain => {
@@ -249,5 +260,20 @@ mod tests {
             lyric: Some("  [00:01.00]hi  ".to_string()),
         });
         assert_eq!(LyricContent::text(&content), Some("[00:01.00]hi"));
+    }
+
+    #[test]
+    fn test_lyrics_response_reads_translation_tracks() {
+        let response: LyricsResponse = serde_json::from_value(serde_json::json!({
+            "lrc": { "lyric": "[00:01.00]Hello" },
+            "yrc": { "lyric": "[1000,1000](1000,1000,0)Hello" },
+            "tlyric": { "lyric": "[00:01.00]你好" },
+            "ytlrc": { "lyric": "[00:01.01]你好" },
+            "pureMusic": false
+        }))
+        .unwrap();
+
+        assert_eq!(LyricContent::text(&response.tlyric), Some("[00:01.00]你好"));
+        assert_eq!(LyricContent::text(&response.ytlrc), Some("[00:01.01]你好"));
     }
 }

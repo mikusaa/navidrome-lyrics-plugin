@@ -146,6 +146,8 @@ const INSTRUMENTAL_MARKERS: &[&str] = &["instrumental", "纯音乐", "no lyrics"
 /// instrumental marker.
 const MAX_INSTRUMENTAL_TIMED_LINES: usize = 3;
 
+const TRANSLATION_MATCH_TOLERANCE_MS: u64 = 100;
+
 /// A blank (timestamp-only) line is kept only when the gap to the next line is
 /// at least this long. Shorter gaps are provider noise, not a real instrumental
 /// pause, and a long enough gap can also let a stripped section label leave one
@@ -199,6 +201,68 @@ pub fn is_synced(lyrics: &str) -> bool {
     lyrics
         .lines()
         .any(|line| matches!(parse_line(line), Some((Some(_), _))))
+}
+
+pub fn merge_translation(original: &str, translation: &str) -> String {
+    struct TranslationLine<'a> {
+        time_ms: i64,
+        text: &'a str,
+        used: bool,
+    }
+
+    let mut translations: Vec<TranslationLine<'_>> = translation
+        .lines()
+        .filter_map(|line| {
+            let (Some(time), text) = parse_line(line)? else {
+                return None;
+            };
+            let text = text.trim();
+            (!text.is_empty()).then_some(TranslationLine {
+                time_ms: seconds_to_ms(time),
+                text,
+                used: false,
+            })
+        })
+        .collect();
+
+    if translations.is_empty() {
+        return original.to_string();
+    }
+
+    let mut out = Vec::new();
+    for line in original.lines() {
+        out.push(line.to_string());
+
+        let Some((Some(time), original_text)) = parse_line(line) else {
+            continue;
+        };
+        let time_ms = seconds_to_ms(time);
+
+        let Some((index, _)) = translations
+            .iter()
+            .enumerate()
+            .filter(|(_, candidate)| !candidate.used)
+            .map(|(index, candidate)| (index, candidate.time_ms.abs_diff(time_ms)))
+            .filter(|(_, difference)| *difference < TRANSLATION_MATCH_TOLERANCE_MS)
+            .min_by_key(|(_, difference)| *difference)
+        else {
+            continue;
+        };
+
+        let translated = &mut translations[index];
+        translated.used = true;
+        if strip_word_tags(original_text).trim() == translated.text {
+            continue;
+        }
+
+        out.push(format!("{}{}", timestamp_only(line), translated.text));
+    }
+
+    out.join("\n")
+}
+
+fn seconds_to_ms(seconds: f64) -> i64 {
+    (seconds * 1000.0).round() as i64
 }
 
 pub(crate) fn time_tag_secs(line: &str) -> Option<f64> {
@@ -466,6 +530,67 @@ mod tests {
             let line = "[01:40:05.00]<01:40:05.00>past <01:40:06.00>the hour<01:40:07.00>";
             check_sanitize(line, line);
             check_synced(line, true);
+        }
+    }
+
+    mod translations {
+        use super::*;
+
+        #[test]
+        fn are_interleaved_using_the_original_timestamp() {
+            let original = concat!(
+                "[00:01.00]<00:01.00>Hello <00:01.50>world<00:02.00>\n",
+                "[00:03.00]<00:03.00>Goodbye<00:04.00>"
+            );
+            let translation = "[00:01.02]你好，世界\n[00:03.01]再见";
+
+            assert_eq!(
+                merge_translation(original, translation),
+                concat!(
+                    "[00:01.00]<00:01.00>Hello <00:01.50>world<00:02.00>\n",
+                    "[00:01.00]你好，世界\n",
+                    "[00:03.00]<00:03.00>Goodbye<00:04.00>\n",
+                    "[00:03.00]再见"
+                )
+            );
+        }
+
+        #[test]
+        fn match_tolerance_is_less_than_one_hundred_milliseconds() {
+            let original = "[00:01.000]One\n[00:02.000]Two";
+            let translation = "[00:01.099]一\n[00:02.100]二";
+
+            assert_eq!(
+                merge_translation(original, translation),
+                "[00:01.000]One\n[00:01.000]一\n[00:02.000]Two"
+            );
+        }
+
+        #[test]
+        fn unmatched_and_untimed_translation_lines_are_ignored() {
+            let original = "[00:01.00]One\n[00:03.00]Three";
+            let translation = "translator: Someone\n[00:02.00]二";
+
+            assert_eq!(merge_translation(original, translation), original);
+        }
+
+        #[test]
+        fn identical_translation_is_not_duplicated() {
+            let original = "[00:01.00]<00:01.00>Hello<00:02.00>";
+            let translation = "[00:01.00]Hello";
+
+            assert_eq!(merge_translation(original, translation), original);
+        }
+
+        #[test]
+        fn a_translation_line_is_used_only_once() {
+            let original = "[00:01.00]One\n[00:01.00]One again";
+            let translation = "[00:01.00]一";
+
+            assert_eq!(
+                merge_translation(original, translation),
+                "[00:01.00]One\n[00:01.00]一\n[00:01.00]One again"
+            );
         }
     }
 
