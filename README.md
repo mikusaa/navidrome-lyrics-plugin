@@ -1,100 +1,28 @@
-# Navidrome Lyrics Plugin
+# Navidrome Lyrics Plugin（定制版）
 
-A Navidrome plugin for fetching lyrics from multiple sources. Formerly Navidrome LRCLIB Plugin.
+本仓库基于 [J0R6IT0/navidrome-lyrics-plugin](https://github.com/J0R6IT0/navidrome-lyrics-plugin)，仅维护以下定制改动。
 
-> [!IMPORTANT]
-> The Navidrome WebUI does not display lyrics from plugins at the moment, you need a third party client in order to see them.
+## 本仓库的改动
 
-## Features
+- 网易云音乐支持双语歌词：同时读取原文歌词、翻译歌词和逐字歌词，并按时间轴合并；歌曲有翻译时自动返回双语歌词。
+- 支持 LRC 和 ELRC 双语合并：时间差小于 100 毫秒的原文与译文视为同一行。
+- 插件设置页面中文化，包括设置名称、说明、分组、歌词源模式和语言名称。
+- 新配置默认优先查询网易云音乐，其次是 LRCLIB 和 lyrics.ovh；缓存版本已更新，避免继续命中旧版单语歌词缓存。
 
-- Multiple [lyrics providers](https://github.com/mikusaa/navidrome-lyrics-plugin#providers).
-- Supports plain, line-synced and word-by-word lyrics in TTML, LRC, ELRC, Lyricsfile and other formats.
-- Allows writing lyrics to sidecar files.
-- Different provider modes to query by priority, preferred format or sync level.
-- Configurable caching to reduce network calls.
-- Cleans up lyrics by removing section labels, credits and other unwanted text.
+## 网易云双语歌词设置
 
-## Installation
+网易云音乐的双语歌词不需要额外开关。设置中的“包含翻译”仅适用于 Apple Music，与网易云音乐无关。
 
-Make sure your Navidrome version is at least `v0.63.0`.
+升级已有安装时，Navidrome 会保留原来的插件配置，不会应用新的默认歌词源顺序。请在插件设置中：
 
-1. Download the latest `nd-lyrics.ndp` from the Releases page and place it in your plugins folder.
+1. 将“网易云音乐（有翻译时自动双语）”添加到歌词源列表，并移到第一位。
+2. 将“歌词源模式”设为“按顺序优先”。
+3. 替换插件文件后重启 Navidrome。
 
-2. Add `nd-lyrics` to the `LyricsPriority` config option. See [here](https://www.navidrome.org/docs/usage/configuration/options/#:~:text=true-,LyricsPriority,-ND_LYRICSPRIORITY).
+只有网易云音乐本身提供译文的歌曲才会返回双语歌词。
 
-> [!IMPORTANT]
-> The value added to `LyricsPriority` should match the name of the plugin without the extension. If you rename the plugin to `lyrics.ndp`, you should add `lyrics` instead of `nd-lyrics`.
+## 上游文档
 
-> [!TIP]
-> If you are using the "Write lyrics to files" option, you can do `".ttml,.yaml,.yml,.elrc,.lrc,.srt,.txt,embedded,nd-lyrics"` so Navidrome reads the files directly when available. This will only work if "Write to custom path" is disabled.
+安装要求、Navidrome 配置、全部歌词源、歌词源模式、歌词文件写入和构建方式等通用说明，请查看[上游项目文档](https://github.com/J0R6IT0/navidrome-lyrics-plugin#readme)。
 
-> [!TIP]
-> If you're running the TrueNAS Community Edition Navidrome app, configuration is done via environment variables. Set `ND_LYRICSPRIORITY` to the same value you would use for `LyricsPriority`.
-
-3. You may need to restart Navidrome for the plugin to be detected. Don't forget to enable the plugin and configure it to your liking.
-
-4. The plugin will fetch lyrics only when a client requests them.
-
-## Providers
-
-At this time, the following providers are available. Please report any issues you encounter while using them.
-
-Some of the providers don't host lyrics themselves, they pull them from other websites. Those are indicated in the `Sources` column.
-
-| Provider    | Sources                                                               | Type                 | Notes                                                                |
-| ----------- | --------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------- |
-| LRCLIB      |                                                                       | plain,lrc,lyricsfile | Supports custom instances                                            |
-| lyrics.ovh  | Genius, AZLyrics, Paroles.net, LyricsMania, Letras.mus.br, Lyrics.com | plain                | Supports custom instances                                            |
-| lrcmux      | Genius, KuGou, Musixmatch, NetEase, YouTube Music                     | plain,lrc,elrc       | Supports custom instances                                            |
-| KuGou       |                                                                       | lrc,elrc             |                                                                      |
-| NetEase     |                                                                       | lrc,elrc             | Includes translations when available                                 |
-| QQ Music    |                                                                       | lrc,elrc             |                                                                      |
-| Apple Music |                                                                       | ttml                 | Supports translations and romanization. Requires active subscription |
-| stixoi.info |                                                                       | plain                | Greek lyrics archive                                                 |
-
-## Provider modes
-
-The **provider mode** controls how the provider list is used on each lookup:
-
-- **Priority**: tries providers top to bottom and the first one that returns lyrics wins.
-- **Rotation**: each lookup starts with the next provider in the list, cycling on successive calls; the rest act as fallbacks. Useful to spread load and avoid rate limits.
-- **Type priority**: queries providers until it has the highest-priority format they can collectively offer, then returns the best result found, instead of stopping at the first hit.
-
-  For example, with format priority `ttml,elrc,lrc,plain` and providers `qqmusic,netease,kugou,lyrics.ovh`, the best achievable format is `elrc` (none of these serve `ttml`). Each provider is queried in turn until one yields `elrc`. A provider is skipped once it cannot beat what has already been fetched (e.g. `lyrics.ovh`, which only serves `plain`, is skipped when an `lrc` result is already in hand). On a tie, the higher provider in the list wins. This makes more requests per lookup in exchange for the best available format.
-
-- **Best sync level**: works like type priority, but ranks results by their sync level rather than by the configured format order:
-
-  `word-by-word` > `line-by-line` > `plain`
-
-## Path variables
-
-Custom paths to write lyrics files to can be composed using path variables.
-
-Consider the following example:
-
-```
-_lyrics/{type}/{track:album}/{track:track_number:2} - {track:title}
-```
-
-This will be transformed into something like this:
-
-```
-<selected_library_root>/_lyrics/lrc/The Razors Edge/01 - Thunderstruck.lrc
-```
-
-Note that the extension is appended automatically based on the configuration and lyrics type.
-
-| Variable             | Description                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| {type}               | The type of lyrics ("plain", "lrc", "elrc", "ttml", "srt", "lyricsfile" or "instrumental") |
-| {track:id}           | The ID of the track                                                                        |
-| {track:title}        | The title of the track                                                                     |
-| {track:album}        | The name of the album this track belongs to                                                |
-| {track:artist}       | The artist of the track                                                                    |
-| {track:album_artist} | The artist of the album this track belongs to                                              |
-| {track:track_number} | The number of track in the album\*                                                         |
-| {track:disc_number}  | The number of the disc in the album\*                                                      |
-
-\* {track:track_number} and {track:disc_number} accept a padding argument to fill with 0s:
-
-`{track:track_number:2}` will ensure that there are at least 2 digits. For example, track_number `1` will become `01`.
+本仓库保留上游项目的作者署名与许可证。
