@@ -10,6 +10,7 @@ use nd_pdk::{
     host::http::{self, HTTPRequest, HTTPResponse},
     lyrics::{Error, TrackInfo},
 };
+use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -98,9 +99,9 @@ impl LyricsProvider for NetEase {
             return Ok(Some(Lyrics::Instrumental));
         }
 
-        let lrc = LyricContent::text(&response.lrc).map(strip_metadata);
-        let tlyric = LyricContent::text(&response.tlyric).map(strip_metadata);
-        let ytlrc = LyricContent::text(&response.ytlrc).map(strip_metadata);
+        let lrc = LyricContent::text(&response.lrc).map(prepare_lrc);
+        let tlyric = LyricContent::text(&response.tlyric).map(prepare_lrc);
+        let ytlrc = LyricContent::text(&response.ytlrc).map(prepare_lrc);
 
         for &kind in &cfg.lyrics_type_priority {
             match kind {
@@ -176,6 +177,15 @@ fn strip_metadata(lyric: &str) -> String {
         .join("\n")
 }
 
+fn prepare_lrc(lyric: &str) -> String {
+    let lyric = strip_metadata(lyric);
+    let legacy_timestamp = Regex::new(r"\[(\d+):([0-5]\d):(\d{2,3})\]").unwrap();
+
+    legacy_timestamp
+        .replace_all(&lyric, "[${1}:${2}.${3}]")
+        .into_owned()
+}
+
 fn get_json<T: serde::de::DeserializeOwned>(
     base_url: &str,
     query: &str,
@@ -235,6 +245,29 @@ mod tests {
     #[test]
     fn test_strip_metadata_empty() {
         assert_eq!(strip_metadata(""), "");
+    }
+
+    #[test]
+    fn test_prepare_lrc_normalizes_legacy_netease_timestamps() {
+        let original = prepare_lrc("[00:00:91]Original\n[01:04:57]Another line");
+        let translation = prepare_lrc("[00:00:91]译文\n[01:04:57]另一行");
+
+        assert!(lrc::is_synced(&original));
+        assert_eq!(
+            lrc::merge_translation(&original, &translation),
+            concat!(
+                "[00:00.91]Original\n",
+                "[00:00.91]译文\n",
+                "[01:04.57]Another line\n",
+                "[01:04.57]另一行"
+            )
+        );
+    }
+
+    #[test]
+    fn test_prepare_lrc_keeps_standard_hour_timestamps() {
+        let lyric = "[01:40:05.00]Past the hour";
+        assert_eq!(prepare_lrc(lyric), lyric);
     }
 
     #[test]

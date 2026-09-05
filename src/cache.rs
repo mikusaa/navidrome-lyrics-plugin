@@ -11,7 +11,7 @@ use std::{
 };
 
 const PREFIX_NEGATIVE: &str = "miss:";
-const LYRICS_CACHE_VERSION: &str = "v2";
+const LYRICS_CACHE_VERSION: &str = "v3";
 
 const SENTINEL: &[u8] = &[1u8];
 
@@ -169,13 +169,13 @@ mod tests {
 
     #[test]
     fn an_entry_is_keyed_by_type_and_track() {
-        check_key(LyricsKind::Plain, "v2:plain:abc123");
-        check_key(LyricsKind::Lrc, "v2:lrc:abc123");
-        check_key(LyricsKind::Elrc, "v2:elrc:abc123");
-        check_key(LyricsKind::Ttml, "v2:ttml:abc123");
-        check_key(LyricsKind::Srt, "v2:srt:abc123");
-        check_key(LyricsKind::Lyricsfile, "v2:lyricsfile:abc123");
-        check_key(LyricsKind::Instrumental, "v2:instrumental:abc123");
+        check_key(LyricsKind::Plain, "v3:plain:abc123");
+        check_key(LyricsKind::Lrc, "v3:lrc:abc123");
+        check_key(LyricsKind::Elrc, "v3:elrc:abc123");
+        check_key(LyricsKind::Ttml, "v3:ttml:abc123");
+        check_key(LyricsKind::Srt, "v3:srt:abc123");
+        check_key(LyricsKind::Lyricsfile, "v3:lyricsfile:abc123");
+        check_key(LyricsKind::Instrumental, "v3:instrumental:abc123");
     }
 
     #[test]
